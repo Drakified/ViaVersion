@@ -19,6 +19,7 @@ package us.myles.ViaVersion.api.rewriters;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import us.myles.ViaVersion.api.Via;
@@ -27,23 +28,6 @@ import us.myles.ViaVersion.api.protocol.Protocol;
 import us.myles.ViaVersion.api.remapper.PacketRemapper;
 import us.myles.ViaVersion.api.type.Type;
 import us.myles.ViaVersion.util.GsonUtil;
-
-// Packets using components:
-// ping (status)
-// disconnect (play and login)
-// chat
-// bossbar
-// open window
-// combat event
-// title
-// tablist
-// teams
-// scoreboard
-// player info
-// map data
-// declare commands
-// advancements
-// update sign
 
 /**
  * Handles json chat components, containing methods to override certain parts of the handling.
@@ -63,13 +47,23 @@ public class ComponentRewriter {
         this.protocol = null;
     }
 
-    public void registerChatMessage(ClientboundPacketType packetType) {
+    /**
+     * Processes components at the beginning of the packet.
+     * Used for packets that have components as their very first value, so no special pre-reading is necessary.
+     *
+     * @param packetType clientbound packet type
+     */
+    public void registerComponentPacket(ClientboundPacketType packetType) {
         protocol.registerOutgoing(packetType, new PacketRemapper() {
             @Override
             public void registerMap() {
                 handler(wrapper -> processText(wrapper.passthrough(Type.COMPONENT)));
             }
         });
+    }
+
+    public void registerChatMessage(ClientboundPacketType packetType) {
+        registerComponentPacket(packetType);
     }
 
     public void registerBossBar(ClientboundPacketType packetType) {
@@ -88,6 +82,9 @@ public class ComponentRewriter {
         });
     }
 
+    /**
+     * Handles sub 1.17 combat event components.
+     */
     public void registerCombatEvent(ClientboundPacketType packetType) {
         protocol.registerOutgoing(packetType, new PacketRemapper() {
             @Override
@@ -103,6 +100,9 @@ public class ComponentRewriter {
         });
     }
 
+    /**
+     * Handles sub 1.17 title components.
+     */
     public void registerTitle(ClientboundPacketType packetType) {
         protocol.registerOutgoing(packetType, new PacketRemapper() {
             @Override
@@ -119,7 +119,7 @@ public class ComponentRewriter {
 
     public JsonElement processText(String value) {
         try {
-            JsonElement root = GsonUtil.getJsonParser().parse(value);
+            JsonElement root = JsonParser.parseString(value);
             processText(root);
             return root;
         } catch (JsonSyntaxException e) {

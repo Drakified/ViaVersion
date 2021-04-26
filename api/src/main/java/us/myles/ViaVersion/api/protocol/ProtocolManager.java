@@ -23,7 +23,7 @@
 package us.myles.ViaVersion.api.protocol;
 
 import com.google.common.collect.Range;
-import org.jetbrains.annotations.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.SortedSet;
@@ -44,13 +44,31 @@ public interface ProtocolManager {
      * @param protocolClass class of the protocol
      * @return protocol if present
      */
-    @Nullable
-    Protocol getProtocol(Class<? extends Protocol> protocolClass);
+    @Nullable Protocol getProtocol(Class<? extends Protocol> protocolClass);
 
+    /**
+     * Returns the base protocol handling incoming handshake packets.
+     *
+     * @return base protocol
+     */
     Protocol getBaseProtocol();
 
+    /**
+     * Returns the base protocol for a specific server protocol version.
+     * The standard base protocols deal with status and login packets for userconnection initialization.
+     *
+     * @param serverVersion server protocol version
+     * @return base protocol for the given server protocol version
+     */
     Protocol getBaseProtocol(int serverVersion);
 
+    /**
+     * Returns whether the given protocol is a base protocol.
+     *
+     * @param protocol protocol
+     * @return whether the protocol is a base protocol
+     * @see Protocol#isBaseProtocol()
+     */
     boolean isBaseProtocol(Protocol protocol);
 
     /**
@@ -77,6 +95,7 @@ public interface ProtocolManager {
      *
      * @param baseProtocol       base protocol to register
      * @param supportedProtocols versions supported by the base protocol
+     * @throws IllegalArgumentException if the protocol is not a base protocol as given by {@link Protocol#isBaseProtocol()}
      */
     void registerBaseProtocol(Protocol baseProtocol, Range<Integer> supportedProtocols);
 
@@ -87,8 +106,7 @@ public interface ProtocolManager {
      * @param serverVersion desired output server version
      * @return path it generated, null if not supported
      */
-    @Nullable
-    List<ProtocolPathEntry> getProtocolPath(int clientVersion, int serverVersion);
+    @Nullable List<ProtocolPathEntry> getProtocolPath(int clientVersion, int serverVersion);
 
     /**
      * Returns the maximum protocol path size applied to {@link #getProtocolPath(int, int)}.
@@ -99,7 +117,7 @@ public interface ProtocolManager {
 
     /**
      * Sets the maximum protocol path size applied to {@link #getProtocolPath(int, int)}.
-     * Its default it 50.
+     * Its default is 50.
      *
      * @param maxProtocolPathSize maximum protocol path size
      */
@@ -159,6 +177,5 @@ public interface ProtocolManager {
      * @param protocolClass protocol class
      * @return data loading future bound to the protocol, or null if all loading is complete
      */
-    @Nullable
-    CompletableFuture<Void> getMappingLoaderFuture(Class<? extends Protocol> protocolClass);
+    @Nullable CompletableFuture<Void> getMappingLoaderFuture(Class<? extends Protocol> protocolClass);
 }

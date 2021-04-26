@@ -23,7 +23,7 @@ import com.google.common.collect.Range;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import org.jetbrains.annotations.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import us.myles.ViaVersion.api.Pair;
 import us.myles.ViaVersion.api.Via;
 import us.myles.ViaVersion.api.data.MappingDataLoader;
@@ -80,7 +80,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
 public class ProtocolManagerImpl implements ProtocolManager {
-    public static final Protocol BASE_PROTOCOL = new BaseProtocol();
+    private static final Protocol BASE_PROTOCOL = new BaseProtocol();
 
     // Input Version -> Output Version & Protocol (Allows fast lookup)
     private final Int2ObjectMap<Int2ObjectMap<Protocol>> registryMap = new Int2ObjectOpenHashMap<>(32);
@@ -187,6 +187,7 @@ public class ProtocolManagerImpl implements ProtocolManager {
 
     @Override
     public void registerBaseProtocol(Protocol baseProtocol, Range<Integer> supportedProtocols) {
+        Preconditions.checkArgument(baseProtocol.isBaseProtocol(), "Protocol is not a base protocol");
         baseProtocols.add(new Pair<>(supportedProtocols, baseProtocol));
         if (Via.getPlatform().isPluginEnabled()) {
             baseProtocol.register(Via.getManager().getProviders());
@@ -210,9 +211,8 @@ public class ProtocolManagerImpl implements ProtocolManager {
         }
     }
 
-    @Nullable
     @Override
-    public List<ProtocolPathEntry> getProtocolPath(int clientVersion, int serverVersion) {
+    public @Nullable List<ProtocolPathEntry> getProtocolPath(int clientVersion, int serverVersion) {
         ProtocolPathKey protocolKey = new ProtocolPathKeyImpl(clientVersion, serverVersion);
         // Check cache
         List<ProtocolPathEntry> protocolList = pathCache.get(protocolKey);
@@ -237,8 +237,7 @@ public class ProtocolManagerImpl implements ProtocolManager {
      * @param serverVersion desired output version
      * @return path that has been generated, null if failed
      */
-    @Nullable
-    private List<ProtocolPathEntry> getProtocolPath(List<ProtocolPathEntry> current, int clientVersion, int serverVersion) {
+    private @Nullable List<ProtocolPathEntry> getProtocolPath(List<ProtocolPathEntry> current, int clientVersion, int serverVersion) {
         if (clientVersion == serverVersion) return null; // We're already there
         if (current.size() > maxProtocolPathSize) return null; // Fail safe, protocol too complicated.
 
@@ -282,9 +281,8 @@ public class ProtocolManagerImpl implements ProtocolManager {
         return shortest; // null if none found
     }
 
-    @Nullable
     @Override
-    public Protocol getProtocol(Class<? extends Protocol> protocolClass) {
+    public @Nullable Protocol getProtocol(Class<? extends Protocol> protocolClass) {
         return protocols.get(protocolClass);
     }
 
@@ -300,12 +298,7 @@ public class ProtocolManagerImpl implements ProtocolManager {
 
     @Override
     public boolean isBaseProtocol(Protocol protocol) {
-        for (Pair<Range<Integer>, Protocol> p : baseProtocols) {
-            if (p.getValue() == protocol) {
-                return true;
-            }
-        }
-        return false;
+        return protocol.isBaseProtocol();
     }
 
     @Override
@@ -315,7 +308,6 @@ public class ProtocolManagerImpl implements ProtocolManager {
 
     public void setServerProtocol(ServerProtocolVersion serverProtocolVersion) {
         this.serverProtocolVersion = serverProtocolVersion;
-        ProtocolRegistry.SERVER_PROTOCOL = serverProtocolVersion.lowestSupportedVersion();
     }
 
     @Override
@@ -406,9 +398,8 @@ public class ProtocolManagerImpl implements ProtocolManager {
         }
     }
 
-    @Nullable
     @Override
-    public CompletableFuture<Void> getMappingLoaderFuture(Class<? extends Protocol> protocolClass) {
+    public @Nullable CompletableFuture<Void> getMappingLoaderFuture(Class<? extends Protocol> protocolClass) {
         mappingLoaderLock.readLock().lock();
         try {
             return mappingsLoaded ? null : mappingLoaderFutures.get(protocolClass);

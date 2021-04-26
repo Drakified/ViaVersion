@@ -40,7 +40,6 @@ import us.myles.ViaVersion.protocols.protocol1_9to1_8.sounds.Effect;
 import us.myles.ViaVersion.protocols.protocol1_9to1_8.sounds.SoundEffect;
 import us.myles.ViaVersion.protocols.protocol1_9to1_8.storage.ClientChunks;
 import us.myles.ViaVersion.protocols.protocol1_9to1_8.storage.EntityTracker1_9;
-import us.myles.ViaVersion.protocols.protocol1_9to1_8.storage.PlaceBlockTracker;
 import us.myles.ViaVersion.protocols.protocol1_9to1_8.types.Chunk1_9to1_8Type;
 
 import java.io.IOException;
@@ -269,7 +268,9 @@ public class WorldPackets {
                             EntityTracker1_9 entityTracker = wrapper.user().get(EntityTracker1_9.class);
                             if (entityTracker.isBlocking()) {
                                 entityTracker.setBlocking(false);
-                                entityTracker.setSecondHand(null);
+                                if (!Via.getConfig().isShowShieldWhenSwordInHand()) {
+                                    entityTracker.setSecondHand(null);
+                                }
                             }
                         }
                     }
@@ -296,17 +297,40 @@ public class WorldPackets {
                         if (Via.getConfig().isShieldBlocking()) {
                             EntityTracker1_9 tracker = wrapper.user().get(EntityTracker1_9.class);
 
-                            if (item != null && Protocol1_9To1_8.isSword(item.getIdentifier())) {
+                            // Check if the shield is already there or if we have to give it here
+                            boolean showShieldWhenSwordInHand = Via.getConfig().isShowShieldWhenSwordInHand();
+
+                            // Method to identify the sword in hand
+                            boolean isSword = showShieldWhenSwordInHand ? tracker.hasSwordInHand()
+                                    : item != null && Protocol1_9To1_8.isSword(item.getIdentifier());
+
+                            if (isSword) {
                                 if (hand == 0) {
                                     if (!tracker.isBlocking()) {
                                         tracker.setBlocking(true);
-                                        Item shield = new Item(442, (byte) 1, (short) 0, null);
-                                        tracker.setSecondHand(shield);
+
+                                        // Check if the shield is already in the offhand
+                                        if (!showShieldWhenSwordInHand && tracker.getItemInSecondHand() == null) {
+
+                                            // Set shield in offhand when interacting with main hand
+                                            Item shield = new Item(442, (byte) 1, (short) 0, null);
+                                            tracker.setSecondHand(shield);
+                                        }
                                     }
+                                }
+
+                                // Use the main hand to trigger the blocking
+                                boolean blockUsingMainHand = Via.getConfig().isNoDelayShieldBlocking()
+                                        && !showShieldWhenSwordInHand;
+
+                                if (blockUsingMainHand && hand == 1 || !blockUsingMainHand && hand == 0) {
                                     wrapper.cancel();
                                 }
                             } else {
-                                tracker.setSecondHand(null);
+                                if (!showShieldWhenSwordInHand) {
+                                    // Remove the shield from the offhand
+                                    tracker.setSecondHand(null);
+                                }
                                 tracker.setBlocking(false);
                             }
                         }
@@ -326,7 +350,13 @@ public class WorldPackets {
             public void registerMap() {
                 map(Type.POSITION); // 0 - Position
                 map(Type.VAR_INT, Type.UNSIGNED_BYTE); // 1 - Block Face
-                map(Type.VAR_INT, Type.NOTHING); // 2 - Hand
+                handler(new PacketHandler() {
+                    @Override
+                    public void handle(PacketWrapper wrapper) throws Exception {
+                        final int hand = wrapper.read(Type.VAR_INT); // 2 - Hand
+                        if (hand != 0) wrapper.cancel();
+                    }
+                });
                 create(new ValueCreator() {
                     @Override
                     public void write(PacketWrapper wrapper) throws Exception {
@@ -337,19 +367,6 @@ public class WorldPackets {
                 map(Type.UNSIGNED_BYTE); // 4 - X
                 map(Type.UNSIGNED_BYTE); // 5 - Y
                 map(Type.UNSIGNED_BYTE); // 6 - Z
-
-                // Cancel if item as 1.9 uses Use_Item packet
-                handler(new PacketHandler() {
-                    @Override
-                    public void handle(PacketWrapper wrapper) throws Exception {
-                        Position position = wrapper.get(Type.POSITION, 0);
-                        PlaceBlockTracker tracker = wrapper.user().get(PlaceBlockTracker.class);
-                        if (tracker.getLastPlacedPosition() != null && tracker.getLastPlacedPosition().equals(position) && !tracker.isExpired(50))
-                            wrapper.cancel();
-                        tracker.updateTime();
-                        tracker.setLastPlacedPosition(position);
-                    }
-                });
 
                 //Register block place to fix sounds
                 handler(new PacketHandler() {

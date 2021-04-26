@@ -25,14 +25,24 @@ import it.unimi.dsi.fastutil.ints.IntSortedSet;
 import us.myles.ViaVersion.api.Via;
 import us.myles.ViaVersion.api.platform.ViaInjector;
 import us.myles.ViaVersion.bungee.handlers.BungeeChannelInitializer;
+import us.myles.ViaVersion.compatibility.ForcefulFieldModifier;
+import us.myles.ViaVersion.compatibility.unsafe.UnsafeBackedForcefulFieldModifier;
 import us.myles.ViaVersion.util.ReflectionUtil;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.List;
 
 public class BungeeViaInjector implements ViaInjector {
+
+    private final ForcefulFieldModifier forcefulFieldModifier;
+
+    public BungeeViaInjector() {
+        try {
+            this.forcefulFieldModifier = new UnsafeBackedForcefulFieldModifier();
+        } catch (final ReflectiveOperationException ex) {
+            throw new IllegalStateException("Cannot create a modifier accessor", ex);
+        }
+    }
 
     @Override
     public void inject() throws Exception {
@@ -41,30 +51,9 @@ public class BungeeViaInjector implements ViaInjector {
             Field field = pipelineUtils.getDeclaredField("SERVER_CHILD");
             field.setAccessible(true);
 
-            // Remove the final modifier (unless removed by a fork)
-            int modifiers = field.getModifiers();
-            if (Modifier.isFinal(modifiers)) {
-                try {
-                    Field modifiersField = Field.class.getDeclaredField("modifiers");
-                    modifiersField.setAccessible(true);
-                    modifiersField.setInt(field, modifiers & ~Modifier.FINAL);
-                } catch (NoSuchFieldException e) {
-                    // Java 12 compatibility *this is fine*
-                    Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-                    getDeclaredFields0.setAccessible(true);
-                    Field[] fields = (Field[]) getDeclaredFields0.invoke(Field.class, false);
-                    for (Field classField : fields) {
-                        if ("modifiers".equals(classField.getName())) {
-                            classField.setAccessible(true);
-                            classField.set(field, modifiers & ~Modifier.FINAL);
-                            break;
-                        }
-                    }
-                }
-            }
-
             BungeeChannelInitializer newInit = new BungeeChannelInitializer((ChannelInitializer<Channel>) field.get(null));
-            field.set(null, newInit);
+
+            this.forcefulFieldModifier.setField(field, null, newInit);
         } catch (Exception e) {
             Via.getPlatform().getLogger().severe("Unable to inject ViaVersion, please post these details on our GitHub and ensure you're using a compatible server version.");
             throw e;

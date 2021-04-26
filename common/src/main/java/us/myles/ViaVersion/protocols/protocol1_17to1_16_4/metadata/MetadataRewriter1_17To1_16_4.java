@@ -49,6 +49,12 @@ public class MetadataRewriter1_17To1_16_4 extends MetadataRewriter {
             metadata.setValue(protocol.getMappingData().getNewBlockStateId(data));
         } else if (metadata.getMetaType() == MetaType1_17.PARTICLE) {
             rewriteParticle((Particle) metadata.getValue());
+        } else if (metadata.getMetaType() == MetaType1_17.Pose) {
+            int pose = metadata.getCastedValue();
+            if (pose > 5) {
+                // Added LONG_JUMP at 6
+                metadata.setValue(pose + 1);
+            }
         }
 
         if (type == null) return;
@@ -57,6 +63,13 @@ public class MetadataRewriter1_17To1_16_4 extends MetadataRewriter {
             if (metadata.getId() >= 7) {
                 metadata.setId(metadata.getId() + 1); // Ticks frozen added with id 7
             }
+        }
+
+        if (type.isOrHasParent(Entity1_17Types.MINECART_ABSTRACT)
+                && metadata.getId() == 11) {
+            // Convert to new block id
+            int data = (int) metadata.getValue();
+            metadata.setValue(protocol.getMappingData().getNewBlockStateId(data));
         }
 
         if (type == Entity1_17Types.SHULKER) {

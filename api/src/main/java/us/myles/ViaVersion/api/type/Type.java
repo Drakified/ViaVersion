@@ -42,6 +42,7 @@ import us.myles.ViaVersion.api.type.types.IntType;
 import us.myles.ViaVersion.api.type.types.LongArrayType;
 import us.myles.ViaVersion.api.type.types.LongType;
 import us.myles.ViaVersion.api.type.types.RemainingBytesType;
+import us.myles.ViaVersion.api.type.types.ShortByteArrayType;
 import us.myles.ViaVersion.api.type.types.ShortType;
 import us.myles.ViaVersion.api.type.types.StringType;
 import us.myles.ViaVersion.api.type.types.UUIDIntArrayType;
@@ -83,7 +84,7 @@ public abstract class Type<T> implements ByteBufReader<T>, ByteBufWriter<T> {
     @Deprecated
     public static final Type<Byte[]> BYTE_ARRAY = new ArrayType<>(Type.BYTE);
     public static final Type<byte[]> BYTE_ARRAY_PRIMITIVE = new ByteArrayType();
-
+    public static final Type<byte[]> SHORT_BYTE_ARRAY = new ShortByteArrayType();
     public static final Type<byte[]> REMAINING_BYTES = new RemainingBytesType();
 
     public static final Type<Short> UNSIGNED_BYTE = new UnsignedByteType();

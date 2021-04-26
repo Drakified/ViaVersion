@@ -17,13 +17,13 @@
  */
 package us.myles.ViaVersion.protocols.protocol1_17to1_16_4;
 
-import org.jetbrains.annotations.Nullable;
 import us.myles.ViaVersion.api.Via;
 import us.myles.ViaVersion.api.data.MappingData;
 import us.myles.ViaVersion.api.data.UserConnection;
 import us.myles.ViaVersion.api.protocol.ClientboundPacketType;
 import us.myles.ViaVersion.api.protocol.Protocol;
 import us.myles.ViaVersion.api.remapper.PacketRemapper;
+import us.myles.ViaVersion.api.rewriters.MetadataRewriter;
 import us.myles.ViaVersion.api.rewriters.RegistryType;
 import us.myles.ViaVersion.api.rewriters.SoundRewriter;
 import us.myles.ViaVersion.api.rewriters.StatisticsRewriter;
@@ -50,7 +50,7 @@ public class Protocol1_17To1_16_4 extends Protocol<ClientboundPackets1_16_2, Cli
 
     @Override
     protected void registerPackets() {
-        new MetadataRewriter1_17To1_16_4(this);
+        MetadataRewriter metadataRewriter = new MetadataRewriter1_17To1_16_4(this);
 
         EntityPackets.register(this);
         InventoryPackets.register(this);
@@ -87,7 +87,7 @@ public class Protocol1_17To1_16_4 extends Protocol<ClientboundPackets1_16_2, Cli
             }
         });
 
-        new StatisticsRewriter(this, null).register(ClientboundPackets1_16_2.STATISTICS);
+        new StatisticsRewriter(this, metadataRewriter::getNewEntityId).register(ClientboundPackets1_16_2.STATISTICS);
 
         SoundRewriter soundRewriter = new SoundRewriter(this);
         soundRewriter.registerSound(ClientboundPackets1_16_2.SOUND);
@@ -100,6 +100,7 @@ public class Protocol1_17To1_16_4 extends Protocol<ClientboundPackets1_16_2, Cli
                     wrapper.passthrough(Type.STRING);
                     wrapper.passthrough(Type.STRING);
                     wrapper.write(Type.BOOLEAN, Via.getConfig().isForcedUse1_17ResourcePack()); // Required
+                    wrapper.write(Type.OPTIONAL_COMPONENT, null); // Prompt message
                 });
             }
         });
@@ -211,10 +212,11 @@ public class Protocol1_17To1_16_4 extends Protocol<ClientboundPackets1_16_2, Cli
                 "minecraft:coal_ores", "minecraft:copper_ores", "minecraft:emerald_ores", "minecraft:cluster_max_harvestables");
         tagRewriter.addEmptyTags(RegistryType.BLOCK, "minecraft:crystal_sound_blocks", "minecraft:candle_cakes", "minecraft:candles",
                 "minecraft:snow_step_sound_blocks", "minecraft:inside_step_sound_blocks", "minecraft:occludes_vibration_signals", "minecraft:dripstone_replaceable_blocks",
-                "minecraft:cave_vines", "minecraft:lush_plants_replaceable", "minecraft:deepslate_ore_replaceables", "minecraft:lush_ground_replaceable",
+                "minecraft:cave_vines", "minecraft:moss_replaceable", "minecraft:deepslate_ore_replaceables", "minecraft:lush_ground_replaceable",
                 "minecraft:diamond_ores", "minecraft:iron_ores", "minecraft:lapis_ores", "minecraft:redstone_ores", "minecraft:stone_ore_replaceables",
-                "minecraft:coal_ores", "minecraft:copper_ores", "minecraft:emerald_ores");
-        tagRewriter.addEmptyTags(RegistryType.ENTITY, "minecraft:powder_snow_walkable_mobs", "minecraft:axolotl_always_hostiles", "minecraft:axolotl_tempted_hostiles");
+                "minecraft:coal_ores", "minecraft:copper_ores", "minecraft:emerald_ores", "minecraft:dirt", "minecraft:snow");
+        tagRewriter.addEmptyTags(RegistryType.ENTITY, "minecraft:powder_snow_walkable_mobs", "minecraft:axolotl_always_hostiles", "minecraft:axolotl_tempted_hostiles",
+                "minecraft:axolotl_hunt_targets", "minecraft:freeze_hurts_extra_types", "minecraft:freeze_immune_entity_types");
 
         tagRewriter.addTag(RegistryType.BLOCK, "minecraft:cauldrons", 261);
         tagRewriter.addTag(RegistryType.ITEM, "minecraft:fox_food", 948);
@@ -227,7 +229,6 @@ public class Protocol1_17To1_16_4 extends Protocol<ClientboundPackets1_16_2, Cli
     }
 
     @Override
-    @Nullable
     public MappingData getMappingData() {
         return MAPPINGS;
     }

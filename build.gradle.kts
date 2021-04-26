@@ -3,11 +3,12 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 plugins {
     `java-library`
     `maven-publish`
+    id("net.kyori.blossom") version "1.2.0" apply false
 }
 
 allprojects {
     group = "us.myles"
-    version = "3.3.0-21w11a"
+    version = "4.0.0-21w16a"
     description = "Allow newer clients to join older server versions."
 }
 
@@ -31,45 +32,45 @@ subprojects {
         }
     }
 
-    val platforms = listOf(
-        "bukkit",
-        "bungee",
-        "fabric",
-        "sponge",
-        "velocity"
-    ).map { "viaversion-$it" }
-    if (platforms.contains(project.name)) {
-        configureShadowJar()
-    } else if (project.name == "viaversion-api") {
-        configureShadowJarAPI()
-    } else if (project.name == "viaversion") {
-        apply<ShadowPlugin>()
-    }
-
     repositories {
+        maven("https://repo.viaversion.com")
+        maven("https://papermc.io/repo/repository/maven-public/")
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
-        maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots")
         maven("https://nexus.velocitypowered.com/repository/velocity-artifacts-snapshots/")
         maven("https://repo.spongepowered.org/repository/maven-public/")
-        maven("https://repo.viaversion.com")
         maven("https://libraries.minecraft.net")
-        maven("https://repo.maven.apache.org/maven2/")
+        mavenCentral()
     }
 
     dependencies {
-        testImplementation("io.netty", "netty-all", Versions.netty)
-        testImplementation("com.google.guava", "guava", Versions.guava)
-        testImplementation("org.junit.jupiter", "junit-jupiter-api", Versions.jUnit)
-        testImplementation("org.junit.jupiter", "junit-jupiter-engine", Versions.jUnit)
+        // Note: If manually starting tests doesn't work for you in IJ, change 'Gradle -> Run Tests Using' to 'IntelliJ IDEA'
+        testImplementation(rootProject.libs.netty)
+        testImplementation(rootProject.libs.guava)
+        testImplementation(rootProject.libs.bundles.junit)
     }
 
+    configureJavaTarget(8)
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
         withSourcesJar()
         withJavadocJar()
     }
+}
 
+// Configure shadow tasks before the publishing task
+sequenceOf(
+        projects.viaversionBukkit,
+        projects.viaversionBungee,
+        projects.viaversionFabric,
+        projects.viaversionSponge,
+        projects.viaversionVelocity
+).map { it.dependencyProject }.forEach { project ->
+    project.configureShadowJar()
+}
+
+projects.viaversionApi.dependencyProject.configureShadowJarAPI()
+projects.viaversion.dependencyProject.apply<ShadowPlugin>()
+
+subprojects {
     publishing {
         publications {
             create<MavenPublication>("mavenJava") {

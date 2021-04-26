@@ -30,9 +30,11 @@ import us.myles.ViaVersion.api.ViaVersionConfig;
 import us.myles.ViaVersion.api.command.ViaCommandSender;
 import us.myles.ViaVersion.api.configuration.ConfigurationProvider;
 import us.myles.ViaVersion.api.data.UserConnection;
-import us.myles.ViaVersion.protocols.base.ProtocolInfo;
+import us.myles.ViaVersion.util.UnsupportedSoftware;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -156,7 +158,7 @@ public interface ViaPlatform<T> {
      */
     default boolean disconnect(UserConnection connection, String message) {
         if (connection.isClientSide()) return false;
-        UUID uuid = connection.get(ProtocolInfo.class).getUuid();
+        UUID uuid = connection.getProtocolInfo().getUuid();
         if (uuid == null) return false;
         return kickPlayer(uuid, message);
     }
@@ -223,5 +225,15 @@ public interface ViaPlatform<T> {
     @Deprecated
     default ViaConnectionManager getConnectionManager() {
         return Via.getManager().getConnectionManager();
+    }
+
+    /**
+     * Returns an immutable collection of classes to be checked as unsupported software with their software name.
+     * If any of the classes exist at runtime, a warning about their potential instability will be given to the console.
+     *
+     * @return immutable collection of unsupported software to be checked
+     */
+    default Collection<UnsupportedSoftware> getUnsupportedSoftwareClasses() {
+        return Collections.emptyList();
     }
 }

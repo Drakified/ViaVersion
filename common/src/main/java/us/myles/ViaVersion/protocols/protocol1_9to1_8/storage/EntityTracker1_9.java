@@ -56,7 +56,7 @@ public class EntityTracker1_9 extends EntityTracker {
     private final Set<Integer> validBlocking = Sets.newConcurrentHashSet();
     private final Set<Integer> knownHolograms = Sets.newConcurrentHashSet();
     private final Set<Position> blockInteractions = Collections.newSetFromMap(CacheBuilder.newBuilder()
-            .maximumSize(10)
+            .maximumSize(1000)
             .expireAfterAccess(250, TimeUnit.MILLISECONDS)
             .<Position, Boolean>build()
             .asMap());
@@ -66,6 +66,8 @@ public class EntityTracker1_9 extends EntityTracker {
     private boolean teamExists = false;
     private GameMode gameMode;
     private String currentTeam;
+    private int heldItemSlot;
+    private Item itemInSecondHand = null;
 
     public EntityTracker1_9(UserConnection user) {
         super(user, EntityType.PLAYER);
@@ -89,12 +91,45 @@ public class EntityTracker1_9 extends EntityTracker {
         PacketWrapper wrapper = new PacketWrapper(0x3C, null, getUser());
         wrapper.write(Type.VAR_INT, entityID);
         wrapper.write(Type.VAR_INT, 1); // slot
-        wrapper.write(Type.ITEM, item);
+        wrapper.write(Type.ITEM, this.itemInSecondHand = item);
         try {
             wrapper.send(Protocol1_9To1_8.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public Item getItemInSecondHand() {
+        return itemInSecondHand;
+    }
+
+    /**
+     * It will set a shield to the offhand if a sword is in the main hand.
+     * The item in the offhand will be cleared if there is no sword in the main hand.
+     */
+    public void syncShieldWithSword() {
+        boolean swordInHand = hasSwordInHand();
+
+        // Update if there is no sword in the main hand or if the player has no shield in the second hand but a sword in the main hand
+        if (!swordInHand || this.itemInSecondHand == null) {
+
+            // Update shield in off hand depending if a sword is in the main hand
+            setSecondHand(swordInHand ? new Item(442, (byte) 1, (short) 0, null) : null);
+        }
+    }
+
+    /**
+     * Returns true if the item in the held inventory slot is a sword.
+     * @return player has a sword in the main hand
+     */
+    public boolean hasSwordInHand() {
+        InventoryTracker inventoryTracker = getUser().get(InventoryTracker.class);
+
+        // Get item in new selected slot
+        int inventorySlot = this.heldItemSlot + 36; // Hotbar slot index to inventory slot
+        int itemIdentifier = inventoryTracker.getItemId((short) 0, (short) inventorySlot);
+
+        return Protocol1_9To1_8.isSword(itemIdentifier);
     }
 
     @Override
@@ -394,5 +429,9 @@ public class EntityTracker1_9 extends EntityTracker {
 
     public void setCurrentTeam(String currentTeam) {
         this.currentTeam = currentTeam;
+    }
+
+    public void setHeldItemSlot(int heldItemSlot) {
+        this.heldItemSlot = heldItemSlot;
     }
 }

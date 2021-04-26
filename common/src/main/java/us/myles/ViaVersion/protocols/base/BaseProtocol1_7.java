@@ -93,7 +93,7 @@ public class BaseProtocol1_7 extends SimpleProtocol {
                                 return;
                             }
 
-                            int closestServerProtocol = versionProvider.getServerProtocol(wrapper.user());
+                            int closestServerProtocol = versionProvider.getClosestServerProtocol(wrapper.user());
                             List<ProtocolPathEntry> protocols = null;
                             if (info.getProtocolVersion() >= closestServerProtocol || Via.getPlatform().isOldClientsAllowed()) {
                                 protocols = Via.getManager().getProtocolManager().getProtocolPath(info.getProtocolVersion(), closestServerProtocol);
@@ -197,6 +197,11 @@ public class BaseProtocol1_7 extends SimpleProtocol {
         }); // Login Start Packet
         registerIncoming(State.LOGIN, 0x01, 0x01); // Encryption Response Packet
         registerIncoming(State.LOGIN, 0x02, 0x02); // Plugin Response (1.13)
+    }
+
+    @Override
+    public boolean isBaseProtocol() {
+        return true;
     }
 
     public static String addDashes(String trimmedUUID) {

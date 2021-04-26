@@ -23,7 +23,7 @@
 package us.myles.ViaVersion.api.minecraft.chunks;
 
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
-import org.jetbrains.annotations.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.BitSet;
 import java.util.List;
@@ -35,12 +35,16 @@ public interface Chunk {
     int getZ();
 
     /**
-     * @return whether this chunk holds biome data, always true for 1.17+ chunks
+     * Returns whether this chunk holds biome data, always true for 1.17+ chunks.
+     *
+     * @return true if this chunk holds biome data
      */
     boolean isBiomeData();
 
     /**
-     * @return whether this is a full chunk, always true for 1.17+ chunks
+     * Returns whether this is a full chunk, always true for 1.17+ chunks.
+     *
+     * @return true if this is a full chunk
      */
     boolean isFullChunk();
 
@@ -54,6 +58,8 @@ public interface Chunk {
     void setIgnoreOldLightData(boolean ignoreOldLightData);
 
     /**
+     * Returns the chunk section bit mask for chunks &lt; 1.17.
+     *
      * @return chunk section bit mask for chunks &lt; 1.17
      * @see #getChunkMask()
      */
@@ -62,11 +68,12 @@ public interface Chunk {
     void setBitmask(int bitmask);
 
     /**
-     * @return chunk section bit mask, only non-null available for 1.17+ chunks
+     * Returns the chunk section bit mask, only non-null for 1.17+ chunks.
+     *
+     * @return chunk section bit mask, only non-null for 1.17+ chunks
      * @see #getBitmask()
      */
-    @Nullable
-    BitSet getChunkMask();
+    @Nullable BitSet getChunkMask();
 
     void setChunkMask(BitSet chunkSectionMask);
 
@@ -74,10 +81,9 @@ public interface Chunk {
 
     void setSections(ChunkSection[] sections);
 
-    @Nullable
-    int[] getBiomeData();
+    int @Nullable [] getBiomeData();
 
-    void setBiomeData(int[] biomeData);
+    void setBiomeData(int @Nullable [] biomeData);
 
     CompoundTag getHeightMap();
 
